@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,15 +7,24 @@
     body {
       font-family: Arial, sans-serif;
       text-align: center;
-      padding-top: 100px;
       background: #f7f7f7;
+      margin: 0;
+      padding: 0;
     }
-    h1 {
-      color: #333;
+    .screen {
+      display: none;
+      padding: 50px;
+    }
+    .active {
+      display: block;
+    }
+    h1, h2 {
+      color: #000;
     }
     button {
       padding: 15px 30px;
       font-size: 18px;
+      margin: 10px;
       background-color: #007BFF;
       color: white;
       border: none;
@@ -26,23 +34,104 @@
     button:hover {
       background-color: #0056b3;
     }
-    p {
+    #clickBtn {
       font-size: 24px;
-      margin-top: 30px;
+      padding: 20px 40px;
     }
   </style>
 </head>
 <body>
-  <h1>Click the Button Game</h1>
-  <button onclick="increaseCount()">Click Me!</button>
-  <p id="count">Clicks: 0</p>
+  <!-- Menu Screen -->
+  <div id="menuScreen" class="screen active">
+    <h1>Click the Button Game</h1>
+    <h2>Select Time</h2>
+    <button onclick="startGame(5)">5 Seconds</button>
+    <button onclick="startGame(10)">10 Seconds</button>
+    <button onclick="startGame(15)">15 Seconds</button>
+  </div>
+
+  <!-- Countdown Screen -->
+  <div id="countdownScreen" class="screen">
+    <h2>Get Ready...</h2>
+    <p id="countdown"></p>
+  </div>
+
+  <!-- Game Screen -->
+  <div id="gameScreen" class="screen">
+    <h2>Click Now!</h2>
+    <button id="clickBtn" onclick="increaseCount()">Click Me!</button>
+    <p id="liveCount">Clicks: 0</p>
+  </div>
+
+  <!-- Result Screen -->
+  <div id="resultScreen" class="screen">
+    <h2>Time's up!</h2>
+    <p id="finalScore"></p>
+    <button onclick="goToMenu()">Try Again</button>
+  </div>
 
   <script>
     let count = 0;
+    let duration = 0;
+    let timer;
+    let countdownValue;
+    let audio = new Audio('https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg');
+
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    function startGame(sec) {
+      duration = sec;
+      count = 0;
+      document.getElementById("liveCount").innerText = "Clicks: 0";
+      showScreen('countdownScreen');
+      startCountdown();
+    }
+
+    function startCountdown() {
+      let countdown = 3;
+      countdownValue = document.getElementById("countdown");
+      countdownValue.innerText = countdown;
+      const interval = setInterval(() => {
+        countdown--;
+        if (countdown <= 0) {
+          clearInterval(interval);
+          showScreen('gameScreen');
+          startClickSession();
+        } else {
+          countdownValue.innerText = countdown;
+        }
+      }, 1000);
+    }
+
+    function startClickSession() {
+      timer = setTimeout(() => {
+        showResult();
+      }, duration * 1000);
+    }
+
     function increaseCount() {
       count++;
-      document.getElementById("count").innerText = "Clicks: " + count;
+      document.getElementById("liveCount").innerText = `Clicks: ${count}`;
+      audio.play();
+      localStorage.setItem("highscore", Math.max(count, getHighScore()));
+    }
+
+    function showResult() {
+      showScreen('resultScreen');
+      document.getElementById("finalScore").innerHTML = `You clicked <strong>${count}</strong> times!<br>High Score: ${getHighScore()}`;
+    }
+
+    function goToMenu() {
+      showScreen('menuScreen');
+    }
+
+    function getHighScore() {
+      return parseInt(localStorage.getItem("highscore") || "0");
     }
   </script>
 </body>
 </html>
+
