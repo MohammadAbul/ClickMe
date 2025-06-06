@@ -2,27 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Click the Button Game</title>
+  <title>Click Game with Leaderboard</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
       background: #f7f7f7;
-      margin: 0;
-      padding: 0;
-    }
-    .screen {
-      display: none;
       padding: 50px;
     }
-    .active {
-      display: block;
-    }
     h1, h2 {
-      color: #000;
+      color: #333;
     }
     button {
-      padding: 15px 30px;
+      padding: 12px 24px;
       font-size: 18px;
       margin: 10px;
       background-color: #007BFF;
@@ -34,102 +26,123 @@
     button:hover {
       background-color: #0056b3;
     }
-    #clickBtn {
-      font-size: 24px;
-      padding: 20px 40px;
+    .hidden {
+      display: none;
     }
   </style>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+  </script>
 </head>
 <body>
-  <!-- Menu Screen -->
-  <div id="menuScreen" class="screen active">
-    <h1>Click the Button Game</h1>
-    <h2>Select Time</h2>
-    <button onclick="startGame(5)">5 Seconds</button>
-    <button onclick="startGame(10)">10 Seconds</button>
-    <button onclick="startGame(15)">15 Seconds</button>
+  <div id="menu">
+    <h1><strong>Click the Button Game</strong></h1>
+    <p>Choose game duration:</p>
+    <button onclick="startCountdown(5)">5 Seconds</button>
+    <button onclick="startCountdown(10)">10 Seconds</button>
+    <button onclick="startCountdown(15)">15 Seconds</button>
   </div>
 
-  <!-- Countdown Screen -->
-  <div id="countdownScreen" class="screen">
-    <h2>Get Ready...</h2>
-    <p id="countdown"></p>
+  <div id="countdown" class="hidden">
+    <h2 id="countdownText"></h2>
   </div>
 
-  <!-- Game Screen -->
-  <div id="gameScreen" class="screen">
-    <h2>Click Now!</h2>
-    <button id="clickBtn" onclick="increaseCount()">Click Me!</button>
-    <p id="liveCount">Clicks: 0</p>
+  <div id="game" class="hidden">
+    <button onclick="increaseCount()">Click Me!</button>
+    <p id="score">Clicks: 0</p>
   </div>
 
-  <!-- Result Screen -->
-  <div id="resultScreen" class="screen">
-    <h2>Time's up!</h2>
-    <p id="finalScore"></p>
-    <button onclick="goToMenu()">Try Again</button>
+  <div id="result" class="hidden">
+    <h2 id="finalScore"></h2>
+    <button onclick="showMenu()">Try Again</button>
+    <div id="leaderboard"></div>
   </div>
 
   <script>
     let count = 0;
-    let duration = 0;
-    let timer;
-    let countdownValue;
-    let audio = new Audio('https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg');
+    let gameDuration = 0;
 
-    function showScreen(id) {
-      document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
-    }
-
-    function startGame(sec) {
-      duration = sec;
+    function showMenu() {
+      document.getElementById('menu').classList.remove('hidden');
+      document.getElementById('result').classList.add('hidden');
+      document.getElementById('leaderboard').innerHTML = "";
       count = 0;
-      document.getElementById("liveCount").innerText = "Clicks: 0";
-      showScreen('countdownScreen');
-      startCountdown();
     }
 
-    function startCountdown() {
+    function startCountdown(seconds) {
+      gameDuration = seconds;
+      document.getElementById('menu').classList.add('hidden');
+      document.getElementById('countdown').classList.remove('hidden');
       let countdown = 3;
-      countdownValue = document.getElementById("countdown");
-      countdownValue.innerText = countdown;
       const interval = setInterval(() => {
-        countdown--;
-        if (countdown <= 0) {
+        document.getElementById('countdownText').innerText = countdown;
+        if (countdown === 0) {
           clearInterval(interval);
-          showScreen('gameScreen');
-          startClickSession();
-        } else {
-          countdownValue.innerText = countdown;
+          document.getElementById('countdown').classList.add('hidden');
+          startGame();
         }
+        countdown--;
       }, 1000);
     }
 
-    function startClickSession() {
-      timer = setTimeout(() => {
-        showResult();
-      }, duration * 1000);
+    function startGame() {
+      document.getElementById('game').classList.remove('hidden');
+      document.getElementById('score').innerText = "Clicks: 0";
+      count = 0;
+      setTimeout(endGame, gameDuration * 1000);
     }
 
     function increaseCount() {
       count++;
-      document.getElementById("liveCount").innerText = `Clicks: ${count}`;
-      audio.play();
-      localStorage.setItem("highscore", Math.max(count, getHighScore()));
+      document.getElementById('score').innerText = `Clicks: ${count}`;
     }
 
-    function showResult() {
-      showScreen('resultScreen');
-      document.getElementById("finalScore").innerHTML = `You clicked <strong>${count}</strong> times!<br>High Score: ${getHighScore()}`;
+    function endGame() {
+      document.getElementById('game').classList.add('hidden');
+      document.getElementById('result').classList.remove('hidden');
+      document.getElementById('finalScore').innerText = `You clicked ${count} times in ${gameDuration}s!`;
+      submitScore(count, gameDuration);
+      showLeaderboard(gameDuration);
     }
 
-    function goToMenu() {
-      showScreen('menuScreen');
+    function submitScore(score, duration) {
+      const username = prompt("Enter your name:");
+      if (!username) return;
+      const path = `leaderboard${duration}`;
+      db.ref(path).push({
+        name: username,
+        score: score,
+        timestamp: Date.now()
+      });
     }
 
-    function getHighScore() {
-      return parseInt(localStorage.getItem("highscore") || "0");
+    function showLeaderboard(duration) {
+      const path = `leaderboard${duration}`;
+      db.ref(path).orderByChild("score").limitToLast(5).once("value", (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+        const sorted = Object.values(data).sort((a, b) => b.score - a.score);
+        let html = `<h3>Top Scores (${duration}s)</h3><ol>`;
+        sorted.forEach(player => {
+          html += `<li>${player.name} - ${player.score}</li>`;
+        });
+        html += `</ol>`;
+        document.getElementById("leaderboard").innerHTML = html;
+      });
     }
   </script>
 </body>
