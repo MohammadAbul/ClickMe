@@ -1,0 +1,48 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Click the Button Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding-top: 100px;
+      background: #f7f7f7;
+    }
+    h1 {
+      color: #333;
+    }
+    button {
+      padding: 15px 30px;
+      font-size: 18px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    p {
+      font-size: 24px;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Click the Button Game</h1>
+  <button onclick="increaseCount()">Click Me!</button>
+  <p id="count">Clicks: 0</p>
+
+  <script>
+    let count = 0;
+    function increaseCount() {
+      count++;
+      document.getElementById("count").innerText = "Clicks: " + count;
+    }
+  </script>
+</body>
+</html>
